@@ -1,4 +1,5 @@
-﻿using APBD9.Models;
+﻿using System.Runtime.InteropServices.JavaScript;
+using APBD9.Models;
 using APBD9.Models.DTOs;
 using APBD9.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -44,9 +45,8 @@ public class WarehouseController : ControllerBase
         switch (result)
         {
             case -1: return NotFound("non existent product or warehouse"); 
-            case -2: return Conflict("the amount doesn't match");
             case -3: return NotFound("order not found");
-            case -4: return Conflict("the order has already been completed");
+            case -4: return Conflict("unexpected error");
             default: return Ok(result);
         }
     }

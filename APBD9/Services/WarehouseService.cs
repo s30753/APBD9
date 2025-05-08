@@ -10,6 +10,8 @@ public class WarehouseService : IWarehouseService
     private readonly string _connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=master;Integrated Security=True;Connect Timeout=30;" +
                                                 "Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False";
 
+    // the method below I did only to check the proper connection of the database
+    //I know it's not in the task, but I just didn't want to delete it
     public async Task<List<Product>> GetAllProducts()
     {
         List<Product> products = new List<Product>();
@@ -44,6 +46,7 @@ public class WarehouseService : IWarehouseService
         {
             await conn.OpenAsync();
             
+            // query checks whether there exists a product with a given id in the Product table
             string command = "SELECT 1 FROM Product WHERE IdProduct = @IdProduct";
             using (SqlCommand cmd = new SqlCommand(command, conn))
             {
@@ -52,6 +55,7 @@ public class WarehouseService : IWarehouseService
                 if (existingProduct == null) return -1;
             }
             
+            // query checks whether there exists a warehouse with a given id in the Warehouse table
             command = "SELECT 1 FROM Warehouse WHERE IdWarehouse = @IdWarehouse";
             using (SqlCommand cmd = new SqlCommand(command,conn))
             {
@@ -64,6 +68,7 @@ public class WarehouseService : IWarehouseService
 
             int? idOrder = null;
             
+            // checks whether the re exists an order with a given id, that matches the amount and has a lower date than the passed one
             command = "SELECT IdOrder FROM [Order] WHERE IdProduct = @IdProduct AND Amount = @Amount AND CreatedAt < @CreatedAt";
             using (SqlCommand cmd = new SqlCommand(command, conn))
             {
@@ -82,6 +87,7 @@ public class WarehouseService : IWarehouseService
                 }
             }
             
+            //checks whether the given order was already completed (exists in Product_Warehouse table)
             command = "SELECT 1 FROM Product_Warehouse WHERE IdOrder = @IdOrder";
             using (SqlCommand cmd = new SqlCommand(command, conn))
             {
@@ -90,6 +96,7 @@ public class WarehouseService : IWarehouseService
                 if (fulfilledOrder != null) return -4;
             }
             
+            // updates the date of fulfilling the order
             command = "UPDATE Order SET FulfilledAt = @Now WHERE IdOrder = @IdOrder";
             using (SqlCommand cmd = new SqlCommand(command, conn))
             {
@@ -99,6 +106,7 @@ public class WarehouseService : IWarehouseService
             }
             
             double finalPrice = 0;
+            // finds the price of the product with a given id
             command = "SELECT Price FROM Product WHERE IdProduct = @IdProduct";
             using (SqlCommand cmd = new SqlCommand(command, conn))
             {
@@ -107,6 +115,7 @@ public class WarehouseService : IWarehouseService
             }
             finalPrice *= productWarehouse.Amount;
 
+            // inserts the record to the Product_Warehouse table with data specified in the body (or some as specified in the task)
             command = @"INSERT INTO Product_Warehouse (IdWarehouse, IdProduct, IdOrder, Amount, Price, CreatedAt)
 VALUES (@IdWarehouse, @IdProduct, @IdOrder, @Amount, @Price, @CreatedAt);
 SELECT SCOPE_IDENTITY();";
@@ -147,11 +156,9 @@ SELECT SCOPE_IDENTITY();";
         }
         catch (SqlException ex)
         {
-            if (ex.Message.Contains("IdProduct does not exist"))
+            if (ex.Message.Contains("IdProduct does not exist") || ex.Message.Contains("Provided IdWarehouse does not exist"))
                 return -1;
-            if (ex.Message.Contains("Provided IdWarehouse does not exist"))
-                return -2;
-            if (ex.Message.Contains("There is no order to fullfill"))
+            if (ex.Message.Contains("There is no order to fulfill"))
                 return -3;
             return -4;
         }
